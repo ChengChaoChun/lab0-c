@@ -23,41 +23,110 @@ struct list_head *q_new()
 }
 
 /* Free all storage used by queue */
-void q_free(struct list_head *head) {}
+void q_free(struct list_head *head) {
+    if(!head)return;
+    element_t *entry;
+    element_t *safe;
+    list_for_each_entry_safe(entry, safe, head, list){
+        free(entry->value);
+        list_del(&entry->list);
+        free(entry);
+    }
+    free(head);
+}
 
 /* Insert an element at head of queue */
 bool q_insert_head(struct list_head *head, char *s)
 {
+    if(!head)return false;
+    element_t *ele = malloc(sizeof(element_t));
+    if(!ele)return false;
+    ele->value = strdup(s);
+    if (!ele->value) {
+        free(ele);
+        return false;
+    }
+    list_add(&ele->list, head);
     return true;
 }
 
 /* Insert an element at tail of queue */
 bool q_insert_tail(struct list_head *head, char *s)
 {
+    if(!head)
+        return false;
+    element_t *ele = malloc(sizeof(element_t));
+    if(!ele)
+        return false;
+    ele->value = strdup(s);
+    if (!ele->value){
+        free(ele);
+        return false;
+    }
+    list_add_tail(&ele->list, head);
     return true;
 }
 
 /* Remove an element from head of queue */
 element_t *q_remove_head(struct list_head *head, char *sp, size_t bufsize)
 {
-    return NULL;
+    if(!head || list_empty(head)){
+         return NULL;
+    }
+    element_t *ele = list_first_entry(head, element_t, list);
+    list_del(&ele->list);
+    if(sp && ele->value){
+        memcpy(sp, ele->value, bufsize);
+        sp[bufsize - 1] = '\0';
+    }
+    return ele;
 }
 
 /* Remove an element from tail of queue */
 element_t *q_remove_tail(struct list_head *head, char *sp, size_t bufsize)
 {
-    return NULL;
+    if(!head || list_empty(head)){
+         return NULL;
+    }
+    element_t *ele = list_last_entry(head, element_t, list);
+    list_del(&ele->list);
+    if(sp && ele->value){
+        memcpy(sp, ele->value, bufsize);
+        sp[bufsize - 1] = '\0';
+    }
+    return ele;
 }
 
 /* Return number of elements in queue */
 int q_size(struct list_head *head)
 {
-    return -1;
+    if(!head)
+        return -1;
+    if(list_empty(head)){
+        return 0;
+    }
+    int i = 0;
+    struct list_head *node;
+    list_for_each(node, head){
+        i++;
+    }
+    return i;
 }
 
 /* Delete the middle node in queue */
 bool q_delete_mid(struct list_head *head)
 {
+    if(!head||list_empty(head)){
+        return false;
+    }
+    struct list_head *fast = head->next;
+    struct list_head *slow = head->next;
+    while (fast != head && fast->next != head) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    list_del(slow);
+    free(slow);
     // https://leetcode.com/problems/delete-the-middle-node-of-a-linked-list/
     return true;
 }
@@ -65,6 +134,22 @@ bool q_delete_mid(struct list_head *head)
 /* Delete all nodes that have duplicate string */
 bool q_delete_dup(struct list_head *head)
 {
+    if(!head)
+        return false;
+    element_t *entry;
+    element_t *safe;
+    list_for_each_entry_safe(entry, safe, head, list){
+        if(strcmp(entry->value, safe->value) == 0){
+            element_t *ele_1;
+            element_t *ele_2;
+            list_for_each_entry_safe(ele_1, ele_2, &entry->list, list){
+                 if(strcmp(ele_1->value, ele_2->value) != 0)
+                     break;
+            }
+            entry->list.prev->next = &ele_2->list;
+            ele_2->list.prev = entry->list.prev;
+        }
+    }
     // https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
     return true;
 }
